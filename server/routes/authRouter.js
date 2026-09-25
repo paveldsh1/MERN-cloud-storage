@@ -6,6 +6,7 @@ import 'dotenv/config'
 import { passwordValidator } from '../validators/passwordValidator.js'
 import { emailValidator } from '../validators/emailValidator.js'
 import { validationResult } from 'express-validator'
+import { cors as authMiddleware  } from '../middleware/authMiddleware.js'
 
 export const getAuthRouter = () => {
 	const router = express.Router()
@@ -76,6 +77,34 @@ export const loginRouter = () => {
 			res.send({ message: 'Server error' })
 		}
 	})
+
+	return router
+}
+
+
+export const authRouter = () => {
+	const router = express.Router()
+
+	router.get('/auth', authMiddleware,
+		async (req, res) => {
+			try {
+				const user = await User.findOne({ _id: req.user.id })
+				const token = jwt.sign({ id: user.id }, process.env.secretKey, { expiresIn: "1h" })
+				return res.json({
+					token,
+					user: {
+						id: user.id,
+						email: user.email,
+						diskSpace: user.diskSpace,
+						usedSpace: user.usedSpace,
+						avatar: user.avatar
+					}
+				})
+			} catch (e) {
+				console.log(e)
+				res.send({ message: "Server error" })
+			}
+		})
 
 	return router
 }
