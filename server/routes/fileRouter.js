@@ -1,0 +1,12 @@
+import express from 'express'
+import { cors as authMiddleware } from '../middleware/authMiddleware.js'
+import fileController from '../controllers/fileController.js'
+
+export const getFileRouter = () => {
+	const router = express.Router()
+
+	router.post('', authMiddleware, fileController.createDir)
+	router.get('', authMiddleware, fileController.getFiles)
+
+	return router
+}

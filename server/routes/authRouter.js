@@ -6,9 +6,11 @@ import 'dotenv/config'
 import { passwordValidator } from '../validators/passwordValidator.js'
 import { emailValidator } from '../validators/emailValidator.js'
 import { validationResult } from 'express-validator'
-import { cors as authMiddleware  } from '../middleware/authMiddleware.js'
+import { cors as authMiddleware } from '../middleware/authMiddleware.js'
+import fileService from '../services/fileService.js'
+import File from '../models/File.js'
 
-export const getAuthRouter = () => {
+export const getRegistrationRouter = () => {
 	const router = express.Router()
 
 	router.post('/registration',
@@ -35,6 +37,7 @@ export const getAuthRouter = () => {
 				const hashPassword = await bcryptjs.hash(password, 8)
 				const user = new User({ email, password: hashPassword })
 				await user.save()
+				await fileService.createDir(new File({ user: user.id, name: '' }))
 				return res.json({ message: 'User was created' })
 
 			}
@@ -47,7 +50,7 @@ export const getAuthRouter = () => {
 	return router
 }
 
-export const loginRouter = () => {
+export const getLoginRouter = () => {
 	const router = express.Router()
 
 	router.post('/login', async (req, res) => {
@@ -82,7 +85,7 @@ export const loginRouter = () => {
 }
 
 
-export const authRouter = () => {
+export const getAuthRouter = () => {
 	const router = express.Router()
 
 	router.get('/auth', authMiddleware,

@@ -57,3 +57,6 @@ temp/
 
 # TypeScript
 *.tsbuildinfo
+
+postman
+.postman

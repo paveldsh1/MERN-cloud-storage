@@ -9,7 +9,7 @@ export const cors = (req, res, next) => {
 	try {
 		const token = req.headers.authorization.split(' ')[1]
 		if (!token) {
-			return res.status(401).json({ message: 'Auth error' })
+			return res.status(401).json({ message: 'Auth error. Have not token' })
 		}
 		const decoded = jwt.verify(token, process.env.secretKey)
 		req.user = decoded
