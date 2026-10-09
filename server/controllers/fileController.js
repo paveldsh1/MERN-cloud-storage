@@ -248,16 +248,18 @@ class FileController {
 	// Скачивание файла
 	async downloadFile(req, res) {
 		try {
-			const fileId = req.query.id
+			const { id } = req.query
 
-			if (!fileId || !mongoose.Types.ObjectId.isValid(fileId)) {
+			// 1. Validate ID
+			if (!id || !mongoose.Types.ObjectId.isValid(id)) {
 				return res.status(400).json({
 					message: 'Invalid file ID'
 				})
 			}
 
+			// 2. Find file belonging to the current user
 			const file = await File.findOne({
-				_id: fileId,
+				_id: id,
 				user: req.user.id
 			})
 
@@ -267,12 +269,14 @@ class FileController {
 				})
 			}
 
+			// 3. Prevent downloading directories
 			if (file.type === 'dir') {
 				return res.status(400).json({
 					message: 'Cannot download a directory'
 				})
 			}
 
+			// 4. Get the absolute file path
 			const userRoot = path.resolve(
 				process.env.filePath,
 				String(req.user.id)
@@ -280,40 +284,75 @@ class FileController {
 
 			const filePath = path.resolve(userRoot, file.path)
 
-			// Проверяем, что путь находится внутри папки пользователя
+			// 5. Prevent path traversal
 			if (!filePath.startsWith(userRoot + path.sep)) {
-				return res.status(400).json({
+				return res.status(403).json({
 					message: 'Invalid file path'
 				})
 			}
 
-			const stats = await fs.promises.stat(filePath).catch(() => null)
+			// 6. Check if the file exists
+			let stats
 
-			if (!stats || !stats.isFile()) {
+			try {
+				stats = await fs.promises.stat(filePath)
+			} catch (error) {
+				console.error('File lookup error:', error)
+
 				return res.status(404).json({
-					message: 'File not found on disk'
+					message: 'File does not exist on disk'
 				})
 			}
 
-			return res.download(filePath, file.name, (error) => {
-				if (error) {
-					console.error('Download error:', error)
+			if (!stats.isFile()) {
+				return res.status(404).json({
+					message: 'The specified path is not a file'
+				})
+			}
 
-					if (!res.headersSent) {
-						res.status(500).json({
-							message: 'Download error'
-						})
-					}
+			// 7. Set download response headers
+			res.setHeader(
+				'Content-Type',
+				'application/octet-stream'
+			)
+
+			res.setHeader(
+				'Content-Disposition',
+				`attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`
+			)
+
+			res.setHeader(
+				'Content-Length',
+				stats.size
+			)
+
+			// 8. Stream the file to the response
+			const stream = fs.createReadStream(filePath)
+
+			stream.on('error', (error) => {
+				console.error('File read error:', error)
+
+				if (!res.headersSent) {
+					res.status(500).json({
+						message: 'Error downloading file'
+					})
+				} else {
+					res.destroy(error)
 				}
 			})
+
+			stream.pipe(res)
+
 		} catch (error) {
-			console.error(error)
+			console.error('Download error:', error)
 
 			if (!res.headersSent) {
 				return res.status(500).json({
-					message: 'Download error'
+					message: 'Server error while downloading file'
 				})
 			}
+
+			res.destroy(error)
 		}
 	}
 }
