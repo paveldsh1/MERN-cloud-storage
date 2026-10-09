@@ -19,6 +19,17 @@ class FileService {
 			}
 		})
 	}
+	deleteFile(file) {
+		const path = this.getPath(file)
+		if (file.type === 'dir') {
+			fs.rmdirSync(path)
+		} else {
+			fs.unlinkSync(path)
+		}
+	}
+	getPath(file) {
+		return process.env.filePath + '\\' + file.user + '\\' + file.path
+	}
 }
 
 export default new FileService()
