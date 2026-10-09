@@ -3,8 +3,10 @@ import { getRegistrationRouter, getLoginRouter, getAuthRouter } from './routes/a
 import { cors } from './middleware/corsMiddleware.js'
 import { getRootRoute } from './routes/rootRouter.js'
 import { getFileRouter } from './routes/fileRouter.js'
+import fileUpload from 'express-fileupload'
 export const app = express()
 
+app.use(fileUpload({}))
 app.use(express.json())
 app.use(cors)
 
